@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Tarefas por Dev</title>
+
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css" />
+
+    <!-- XLSX -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+    <!-- Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="page-logo">Linked<span class="logo-accent">Tasks.</span></h1>
+
+      <div class="toolbar">
+        <button id="resetFilters">Resetar filtros</button>
+        <button id="exportBackup">Exportar backup</button>
+        <button id="importBackup">Importar backup</button>
+        <button id="resetSite" class="danger">Resetar site</button>
+        <input type="file" id="backupFile" accept="application/json" style="display:none" />
+      </div>
+
+      <div class="controls">
+        <input type="file" id="fileInput" accept=".xlsx" />
+        <select id="devSelect" disabled>
+          <option value="">Selecionar Dev</option>
+        </select>
+        <button id="importBtn" disabled>Importar</button>
+      </div>
+
+      <div class="manual-add" aria-label="Adicionar tarefa manualmente">
+        <input id="manualTitle" class="inline-input" placeholder="Título da tarefa" />
+        <input id="manualPriority" class="inline-input priority-input" placeholder="Prioridade (opcional)" />
+        <button id="addManualBtn">Adicionar tarefa</button>
+      </div>
+
+      <div id="taskList"></div>
+    </div>
+
+    <footer class="footer" id="footer">
+      <div class="footer-counter">
+        <span class="counter-value"><span id="doneCount">0</span>/<span id="totalCount">0</span></span> concluídas
+      </div>
+      <div class="footer-logo">
+        Linked<span class="logo-accent">Tasks.</span>
+      </div>
+      <div class="footer-timer">
+        Faltam <span class="timer-value" id="dayTimer">--:--:--</span> para 17h30
+      </div>
+    </footer>
+
+    <!-- Modal -->
+    <div class="modal" id="modal">
+      <div class="modal-content modal-notes">
+        <h3>Anotações da tarefa</h3>
+
+        <div class="notes-grid">
+          <div class="notes-col todo-col" aria-label="To-do list da tarefa">
+            <div class="todo-add">
+              <input id="todoNewText" class="inline-input" placeholder="Adicionar item no to-do" />
+              <button id="todoAddRoot" type="button">Adicionar</button>
+            </div>
+            <div id="todoList" class="todo-list"></div>
+          </div>
+
+          <div class="notes-col markdown-col" aria-label="Markdown da tarefa">
+            <textarea id="notesInput" rows="6"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="secondary" onclick="closeModal()">Cancelar</button>
+          <button onclick="saveNotes()">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal" id="resetModal">
+      <div class="modal-content modal-reset">
+        <h3>Resetar site</h3>
+        <p class="warning">Isso vai apagar todas as tarefas e anotações salvas. Digite <strong>apagar</strong> para confirmar.</p>
+        <input id="resetConfirmInput" class="inline-input" placeholder="Digite apagar para confirmar" />
+        <div class="modal-actions">
+          <button class="secondary" onclick="closeResetModal()">Cancelar</button>
+          <button class="danger" onclick="confirmReset()">Apagar tudo</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal" id="deleteModal">
+      <div class="modal-content modal-reset">
+        <h3>Excluir tarefa</h3>
+        <p class="warning">Tem certeza que deseja excluir esta tarefa? Essa ação não pode ser desfeita.</p>
+        <div class="modal-actions">
+          <button class="secondary" onclick="closeDeleteModal()">Cancelar</button>
+          <button class="danger" onclick="confirmDelete()">Excluir</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
