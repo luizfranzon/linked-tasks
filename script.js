@@ -2,7 +2,8 @@ let workbookData = [];
 let tasks = [];
 let currentTask = null;
 let sortConfig = { key: null, direction: "asc" };
-let notesEditor = null;
+let techEditor = null;
+let planningEditor = null;
 let timerInterval = null;
 let manualOrder = false;
 let lastRendered = [];
@@ -53,7 +54,8 @@ const totalCountEl = document.getElementById("totalCount");
 const dayTimerEl = document.getElementById("dayTimer");
 const taskList = document.getElementById("taskList");
 const modal = document.getElementById("modal");
-const notesInput = document.getElementById("notesInput");
+const techNotesInput = document.getElementById("techNotesInput");
+const planningNotesInput = document.getElementById("planningNotesInput");
 const todoListEl = document.getElementById("todoList");
 const todoNewTextInput = document.getElementById("todoNewText");
 const todoAddRootBtn = document.getElementById("todoAddRoot");
@@ -137,7 +139,10 @@ function importTasks() {
       color: normalizeColor(r["Cor"]),
       priority: r["Prioridade"]?.toString().trim() || "",
       completed: false,
-      notes: ""
+      notes: "",
+      techAnalysis: "",
+      planning: "",
+      todos: []
     }));
 
   manualOrder = false;
@@ -156,7 +161,10 @@ function addManualTask() {
     color: "",
     priority: priority || "",
     completed: false,
-    notes: ""
+    notes: "",
+    techAnalysis: "",
+    planning: "",
+    todos: []
   };
 
   tasks = [...tasks, newTask];
@@ -243,7 +251,10 @@ function render() {
         <path fill="currentColor" d="M88,96a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H96A8,8,0,0,1,88,96Zm8,40h64a8,8,0,0,0,0-16H96a8,8,0,0,0,0,16Zm32,16H96a8,8,0,0,0,0,16h32a8,8,0,0,0,0-16ZM224,48V156.69A15.86,15.86,0,0,1,219.31,168L168,219.31A15.86,15.86,0,0,1,156.69,224H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32H208A16,16,0,0,1,224,48ZM48,208H152V160a8,8,0,0,1,8-8h48V48H48Zm120-40v28.7L196.69,168Z"></path>
       </svg>
     `;
-    notesBtn.classList.toggle("note-active", Boolean(task.notes?.trim()));
+    notesBtn.classList.toggle(
+      "note-active",
+      Boolean(task.notes?.trim() || task.techAnalysis?.trim() || task.planning?.trim())
+    );
     notesBtn.onclick = () => openModal(task);
 
     const deleteBtn = document.createElement("button");
@@ -285,13 +296,38 @@ function openModal(task) {
   ensureTodos(currentTask);
   renderTodoList();
   if (todoNewTextInput) todoNewTextInput.value = "";
-  if (notesEditor) {
-    notesEditor.value(task.notes ?? "");
-    notesEditor.codemirror.refresh();
-  } else {
-    notesInput.value = task.notes;
-  }
+
   modal.style.display = "flex";
+
+  const legacyNotes = String(task.notes ?? "");
+  const tech = String(task.techAnalysis ?? legacyNotes);
+  const planning = String(task.planning ?? "");
+
+  // EasyMDE/CodeMirror only paints correctly after the modal is visible.
+  const syncEditors = () => {
+    if (techEditor) {
+      techEditor.value(tech);
+    } else if (techNotesInput) {
+      techNotesInput.value = tech;
+    }
+
+    if (planningEditor) {
+      planningEditor.value(planning);
+    } else if (planningNotesInput) {
+      planningNotesInput.value = planning;
+    }
+
+    techEditor?.codemirror.refresh();
+    planningEditor?.codemirror.refresh();
+  };
+
+  requestAnimationFrame(() => {
+    syncEditors();
+    requestAnimationFrame(() => {
+      techEditor?.codemirror.refresh();
+      planningEditor?.codemirror.refresh();
+    });
+  });
 }
 
 function closeModal() {
@@ -300,8 +336,13 @@ function closeModal() {
 
 function saveNotes() {
   if (currentTask) {
-    const content = notesEditor ? notesEditor.value() : notesInput.value;
-    currentTask.notes = content;
+    const tech = techEditor ? techEditor.value() : (techNotesInput?.value ?? "");
+    const planning = planningEditor ? planningEditor.value() : (planningNotesInput?.value ?? "");
+
+    currentTask.techAnalysis = tech;
+    currentTask.planning = planning;
+    // mantém compatibilidade com recursos existentes (highlight/sort)
+    currentTask.notes = [tech, planning].map(v => String(v ?? "").trim()).filter(Boolean).join("\n\n");
     ensureTodos(currentTask);
     saveToStorage();
     render();
@@ -837,8 +878,33 @@ function initEditor() {
     return;
   }
 
-  notesEditor = new EasyMDE({
-    element: notesInput,
+  techEditor = new EasyMDE({
+    element: techNotesInput,
+    autofocus: false,
+    spellChecker: false,
+    status: ["lines", "words", "cursor"],
+    autosave: { enabled: false },
+    toolbar: [
+      "bold",
+      "italic",
+      "heading",
+      "quote",
+      "unordered-list",
+      "ordered-list",
+      "link",
+      "preview",
+      "guide"
+    ],
+    shortcuts: {
+      drawBold: "Ctrl-B",
+      drawItalic: "Ctrl-I",
+      drawLink: "Ctrl-K",
+      togglePreview: "Ctrl-P"
+    }
+  });
+
+  planningEditor = new EasyMDE({
+    element: planningNotesInput,
     autofocus: false,
     spellChecker: false,
     status: ["lines", "words", "cursor"],
